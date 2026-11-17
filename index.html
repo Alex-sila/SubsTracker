@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#0F172A">
+  <title>SubsTracker</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- ОНБОРДИНГ -->
+  <div id="onboarding" class="screen active">
+    <div class="onboarding-container">
+      <div class="app-logo-big">📊</div>
+      <h1 class="onboarding-title">SubsTracker</h1>
+      <p class="onboarding-subtitle">Твой умный помощник для контроля подписок</p>
+      
+      <div class="onboarding-features">
+        <div class="feature-item">
+          <span class="feature-icon">💰</span>
+          <div class="feature-text">
+            <h3>Считай траты</h3>
+            <p>Узнай, сколько уходит на подписки в месяц и год.</p>
+          </div>
+        </div>
+        <div class="feature-item">
+          <span class="feature-icon">📈</span>
+          <div class="feature-text">
+            <h3>Смотри аналитику</h3>
+            <p>Красивые графики по категориям твоих расходов.</p>
+          </div>
+        </div>
+        <div class="feature-item">
+          <span class="feature-icon">🔔</span>
+          <div class="feature-text">
+            <h3>Не пропускай списания</h3>
+            <p>Мы напомним за день до того, как банк спишет деньги.</p>
+          </div>
+        </div>
+      </div>
+
+      <button id="btnStart" class="btn-start">ПОЕХАЛИ</button>
+    </div>
+  </div>
+
+  <!-- ЭКРАН БЛОКИРОВКИ (PIN-КОД) -->
+  <div id="pinScreen" class="screen" hidden>
+    <div class="pin-container">
+      <h1 class="app-logo">🔐</h1>
+      <h2 id="pinTitle">Введите PIN-код</h2>
+      <div class="pin-dots" id="pinDots"><span></span><span></span><span></span><span></span></div>
+      <div class="pin-keypad">
+        <button class="pin-btn" onclick="enterPin('1')">1</button>
+        <button class="pin-btn" onclick="enterPin('2')">2</button>
+        <button class="pin-btn" onclick="enterPin('3')">3</button>
+        <button class="pin-btn" onclick="enterPin('4')">4</button>
+        <button class="pin-btn" onclick="enterPin('5')">5</button>
+        <button class="pin-btn" onclick="enterPin('6')">6</button>
+        <button class="pin-btn" onclick="enterPin('7')">7</button>
+        <button class="pin-btn" onclick="enterPin('8')">8</button>
+        <button class="pin-btn" onclick="enterPin('9')">9</button>
+        <button class="pin-btn pin-btn-empty"></button>
+        <button class="pin-btn" onclick="enterPin('0')">0</button>
+        <button class="pin-btn pin-btn-back" onclick="deletePin()">⌫</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ГЛАВНЫЙ ЭКРАН -->
+  <div id="mainScreen" class="screen" hidden>
+    <header class="app-header">
+      <h1>Мои подписки</h1>
+      <div style="display:flex; gap:15px;">
+        <button class="icon-btn" onclick="toggleSearch()" title="Поиск">🔍</button>
+        <button class="icon-btn" onclick="toggleTheme()" title="Сменить тему">🌓</button>
+        <button class="icon-btn" onclick="goToSettings()" title="Настройки">⚙️</button>
+      </div>
+    </header>
+
+    <div id="searchContainer" class="search-container" hidden>
+      <input type="text" id="searchInput" placeholder="Поиск подписки..." oninput="renderMainScreen()">
+    </div>
+
+    <main class="main-content">
+      <!-- БЛОК СТАТИСТИКИ (БЕЗ КНОПКИ-ГЛАЗИКА) -->
+      <div class="stats-card sticky-stats">
+        <div class="stats-header">
+          <span>Вы тратите:</span>
+        </div>
+        <div class="stats-amount" id="totalMonthly">0 ₽ <span>/ мес</span></div>
+        <div class="stats-yearly">Это <span id="totalYearly">0 ₽</span> в год</div>
+      </div>
+
+      <div class="sort-container">
+        <select id="sortSelect" onchange="renderMainScreen()">
+          <option value="date">По дате списания</option>
+          <option value="price">По цене</option>
+          <option value="name">По алфавиту</option>
+        </select>
+      </div>
+
+      <div id="subscriptionsList" class="subs-list"></div>
+    </main>
+
+    <button class="fab" onclick="openAddModal()">+</button>
+
+    <nav class="bottom-nav">
+      <button class="nav-item active" onclick="switchTab('main')">📊 Подписки</button>
+      <button class="nav-item" onclick="switchTab('analytics')">📈 Аналитика</button>
+    </nav>
+  </div>
+
+  <!-- ЭКРАН АНАЛИТИКИ -->
+  <div id="analyticsScreen" class="screen" hidden>
+    <header class="app-header"><h1>Аналитика</h1></header>
+    <main class="main-content">
+      <div class="chart-card">
+        <h3 class="section-title">Траты по категориям</h3>
+        <div class="chart-container"><canvas id="categoryChart"></canvas></div>
+        <div id="categoryList" class="category-list"></div>
+      </div>
+      <div class="chart-card">
+        <h3 class="section-title">Общая статистика</h3>
+        <p class="analytics-text" id="analyticsText">Добавьте подписки, чтобы увидеть статистику.</p>
+        <button class="btn-secondary" style="margin-top:15px;" onclick="shareStats()">📤 Поделиться статистикой</button>
+      </div>
+    </main>
+    <nav class="bottom-nav">
+      <button class="nav-item" onclick="switchTab('main')">📊 Подписки</button>
+      <button class="nav-item active" onclick="switchTab('analytics')">📈 Аналитика</button>
+    </nav>
+  </div>
+
+  <!-- МОДАЛЬНОЕ ОКНО: ДОБАВЛЕНИЕ / РЕДАКТИРОВАНИЕ -->
+  <div id="addModal" class="modal" hidden>
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 id="modalTitle">Новая подписка</h2>
+        <button class="icon-btn" onclick="closeAddModal()">✕</button>
+      </div>
+      <p class="label">Популярные сервисы:</p>
+      <div class="presets-grid">
+        <button class="preset-btn" onclick="fillPreset('Яндекс Плюс', 399, '🎵', 'entertainment')">🎵 Яндекс Плюс</button>
+        <button class="preset-btn" onclick="fillPreset('ВК Музыка', 221, '🎧', 'music')">🎧 ВК Музыка</button>
+        <button class="preset-btn" onclick="fillPreset('Кинопоиск', 599, '🎬', 'entertainment')">🎬 Кинопоиск</button>
+        <button class="preset-btn" onclick="fillPreset('СберПрайм', 399, '🟢', 'entertainment')">🟢 СберПрайм</button>
+        <button class="preset-btn" onclick="fillPreset('Т-Банк Про', 199, '💳', 'utility')">💳 Т-Банк Про</button>
+        <button class="preset-btn" onclick="fillPreset('Telegram Premium', 299, '✈️', 'soft')">✈️ TG Premium</button>
+        <button class="preset-btn" onclick="fillPreset('Мобильная связь', 600, '📱', 'utility')">📱 Связь</button>
+        <button class="preset-btn" onclick="fillPreset('Домашний интернет', 700, '🌐', 'utility')">🌐 Интернет</button>
+      </div>
+
+      <form id="addForm" onsubmit="saveSubscription(event)">
+        <input type="hidden" id="editId">
+        
+        <label class="input-group">
+          <span>Название</span>
+          <input type="text" id="inpName" required placeholder="Например, Netflix">
+        </label>
+        
+        <div style="display: flex; gap: 10px;">
+          <label class="input-group" style="flex: 1;">
+            <span>Цена (₽)</span>
+            <input type="number" id="inpPrice" required placeholder="599">
+          </label>
+          <label class="input-group" style="flex: 1;">
+            <span>Категория</span>
+            <select id="inpCategory">
+              <option value="entertainment">🎬 Развлечения</option>
+              <option value="music">🎵 Музыка</option>
+              <option value="soft">💻 Софт</option>
+              <option value="utility">📱 Связь и интернет</option>
+              <option value="other">📦 Другое</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="input-group">
+          <span>Периодичность</span>
+          <div class="radio-group">
+            <label class="radio-label"><input type="radio" name="period" value="monthly" checked onchange="toggleDateFields()"><span>Ежемесячно</span></label>
+            <label class="radio-label"><input type="radio" name="period" value="yearly" onchange="toggleDateFields()"><span>Раз в год</span></label>
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 10px;">
+          <label class="input-group" id="monthField" style="flex: 1; display: none;">
+            <span>Месяц</span>
+            <select id="inpMonth">
+              <option value="1">Январь</option><option value="2">Февраль</option><option value="3">Март</option>
+              <option value="4">Апрель</option><option value="5">Май</option><option value="6">Июнь</option>
+              <option value="7">Июль</option><option value="8">Август</option><option value="9">Сентябрь</option>
+              <option value="10">Октябрь</option><option value="11">Ноябрь</option><option value="12">Декабрь</option>
+            </select>
+          </label>
+          <label class="input-group" style="flex: 1;">
+            <span>День</span>
+            <select id="inpDay"></select>
+          </label>
+        </div>
+
+        <label class="input-group">
+          <span>Когда вы оформили подписку?</span>
+          <input type="date" id="inpStartDate">
+        </label>
+
+        <label class="checkbox-label" style="margin-bottom: 15px;">
+          <input type="checkbox" id="chkTrial">
+          <span>Это пробный период (напомним об отмене)</span>
+        </label>
+
+        <div class="input-group">
+          <span>Своя иконка (необязательно)</span>
+          <input type="file" id="inpIcon" accept="image/*">
+        </div>
+
+        <button type="submit" class="btn-primary" style="margin-top: 10px;">Сохранить</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- МОДАЛЬНОЕ ОКНО: НАСТРОЙКИ -->
+  <div id="settingsModal" class="modal" hidden>
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Настройки</h2>
+        <button class="icon-btn" onclick="closeSettings()">✕</button>
+      </div>
+      
+      <div class="settings-group" style="background: var(--surface); padding: 16px; border-radius: 12px; border: 1px solid var(--surface-light);">
+        <label class="checkbox-label" style="justify-content: space-between;">
+          <span>Уведомления о списаниях</span>
+          <input type="checkbox" id="chkNotifications" onchange="toggleNotifications()">
+        </label>
+        <p style="font-size:12px; color:var(--text-muted); margin-top:8px;">Мы напомним вам за 1 день до списания денег.</p>
+      </div>
+
+      <div class="settings-group" style="margin-top: 20px;">
+        <span class="field-label" style="display:block; margin-bottom:5px; font-size:13px; color:var(--text-muted);">Тема</span>
+        <select id="themeSelect" onchange="changeTheme(this.value)">
+          <option value="dark">Темная</option>
+          <option value="light">Светлая</option>
+          <option value="system">Системная</option>
+        </select>
+      </div>
+
+      <button class="btn-secondary" onclick="backupData()">💾 Сохранить резервную копию</button>
+      <button class="btn-secondary" style="margin-top:10px;" onclick="document.getElementById('importFile').click()">📂 Загрузить копию</button>
+      <input type="file" id="importFile" accept=".json" style="display:none;" onchange="restoreData(event)">
+      
+      <button class="btn-secondary" style="margin-top:10px;" onclick="openLegal()">⚖️ Правовая информация</button>
+      <button class="btn-secondary" style="margin-top:10px; color:var(--danger);" onclick="clearData()">🗑 Очистить все данные</button>
+
+      <div class="contact-block">
+        <p>Связь с разработчиком:</p>
+        <a href="mailto:zabota@rambler.ru">zabota@rambler.ru</a>
+        <br><br>
+        <button class="btn-secondary" style="width: auto; padding: 8px 16px; font-size: 14px; margin: 0 auto; display: block;" onclick="window.open('https://www.rustore.ru/', '_blank')">⭐ Оценить в RuStore</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- МОДАЛЬНОЕ ОКНО: ЮРИДИЧЕСКАЯ ИНФОРМАЦИЯ -->
+  <div id="legalModal" class="modal" hidden>
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Документы</h2>
+        <button class="icon-btn" onclick="closeLegal()">✕</button>
+      </div>
+      
+      <div class="legal-text">
+        <h3>Политика конфиденциальности</h3>
+        <p><b>1. Общие положения</b><br>Настоящая Политика конфиденциальности определяет порядок обработки и защиты информации о пользователях приложения «SubsTracker» (далее — Приложение).</p>
+        <p><b>2. Хранение данных</b><br>Приложение является полностью офлайн-инструментом. Все введенные вами данные (названия подписок, цены, даты, пользовательские иконки) сохраняются исключительно в локальной памяти вашего устройства (LocalStorage). Разработчик не имеет к ним удаленного доступа, не собирает и не передает их третьим лицам.</p>
+        <p><b>3. Разрешения (Permissions)</b><br>Для корректной работы Приложения вы можете предоставить следующие разрешения:<br>
+        • <b>Уведомления:</b> используются исключительно для локальных напоминаний о списаниях.<br>
+        • <b>Доступ к файлам/Галерее:</b> используется только для выбора и сохранения вашей кастомной иконки подписки.<br>
+        Приложение не использует эти разрешения для сбора скрытой информации.</p>
+        <p><b>4. Реклама и аналитика</b><br>Приложение не содержит рекламы, сторонних трекеров, систем аналитики или сбора персональных данных.</p>
+
+        <h3>Пользовательское соглашение</h3>
+        <p><b>1. Принятие условий</b><br>Используя Приложение, вы соглашаетесь с условиями настоящего Соглашения. Если вы не согласны, пожалуйста, прекратите использование.</p>
+        <p><b>2. Статус приложения</b><br>Приложение «SubsTracker» является личным дневником для учета подписок. Оно не является финансовой организацией, не выдает кредиты, не открывает вклады и не предоставляет иные финансовые услуги.</p>
+        <p><b>3. Отказ от ответственности</b><br>Приложение предоставляется «как есть» (as is). Разработчик не гарантирует абсолютную безотказность работы и не несет ответственности за возможные убытки, включая упущенную выгоду или потерю данных.</p>
+        <p><b>4. Потеря данных</b><br>Так как данные хранятся только на вашем устройстве, Разработчик не может восстановить их в случае удаления Приложения, очистки кэша или смены телефона. Рекомендуется регулярно делать резервные копии (функция доступна в Настройках).</p>
+        <p><b>5. Интеллектуальная собственность</b><br>Весь код, дизайн и элементы Приложения являются собственностью Разработчика. Копирование или распространение без согласия запрещено.</p>
+        <p><b>6. Изменения и контакты</b><br>Разработчик оставляет за собой право обновлять данные документы. По всем вопросам вы можете обратиться по адресу: <b>zabota@rambler.ru</b>.</p>
+      </div>
+      
+      <div style="text-align: right; margin-top: 20px;">
+        <button class="btn-secondary" style="width: auto; display: inline-block; padding: 10px 24px;" onclick="closeLegal()">Закрыть</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
